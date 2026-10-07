@@ -132,13 +132,13 @@ INSERT INTO `movieGenreRelation` (relationID, movieID, genreID) VALUES
    (NULL, 9, 3),
    (NULL, 10, 5);
 
--- ===== Cinema + gamification =====
+-- ===== Cinema =====
 CREATE TABLE `users` (
    userID INT not null auto_increment primary key,
    username VARCHAR(20) not null UNIQUE,
    email VARCHAR(255) not null UNIQUE,
    password_hash VARCHAR(255) not null,
-   role ENUM('user','admin') not null default 'user',
+   role ENUM('user','admin') not null default 'user'
 );
 
 CREATE TABLE `theaters` (
