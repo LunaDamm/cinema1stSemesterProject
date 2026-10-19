@@ -7,15 +7,7 @@ $theaters = [];
 $databaseError = null;
 
 try {
-    $pdo = new PDO(
-        'mysql:host=database;port=3306;dbname=' . ($_ENV['MOVIE_DATABASE'] ?? 'movieDB') . ';charset=utf8mb4',
-        $_ENV['MYSQL_USER'] ?? 'root',
-        $_ENV['MYSQL_PASSWORD'] ?? ($_ENV['MYSQL_ROOT_PASSWORD'] ?? ''),
-        [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]
-    );
+    $pdo = require __DIR__ . '/database.php';
 
     $movies = $pdo->query(
         "SELECT m.movieID, m.title, YEAR(m.release_date) AS release_year, m.rating,
@@ -47,7 +39,7 @@ try {
     $databaseError = 'The projector is warming up. Showing the house programme while we reconnect.';
 }
 
-$featured = $movies[0];
+$featured = $movies[0] ?? ['title' => 'The Marquee'];
 $movieTitles = [];
 foreach ($movies as $movie) {
     $movieTitles[(int) $movie['movieID']] = $movie['title'];
@@ -90,7 +82,7 @@ $initials = static function (string $title): string {
 <body class="grain">
 <header class="border-b border-stone-900/15 bg-[#f5f0e8]/95">
     <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-        <a href="#" class="flex items-center gap-3">
+        <a href="/" class="flex items-center gap-3">
             <span class="flex h-11 w-11 items-center justify-center rounded-full bg-[#b43a2d] text-xl text-[#f8e8bd]">✦</span>
             <span><strong class="serif block text-xl tracking-tight">The Marquee</strong><small class="text-[10px] uppercase tracking-[.3em] text-stone-500">Est. 1927 · Moving pictures</small></span>
         </a>
@@ -145,7 +137,7 @@ $initials = static function (string $title): string {
                     <div class="p-5">
                         <div class="mb-2 flex items-start justify-between gap-3"><h3 class="serif text-xl font-bold"><?= $e($movie['title']) ?></h3><span class="text-xs text-[#b43a2d]">★ <?= $e($movie['rating']) ?></span></div>
                         <p class="mb-5 text-[10px] uppercase tracking-widest text-stone-500"><?= $e($movie['genres'] ?: 'Feature presentation') ?></p>
-                        <a href="#showtimes" class="block border-t border-stone-300 pt-3 text-[10px] font-bold uppercase tracking-widest hover:text-[#b43a2d]">Find showtimes <span class="float-right">→</span></a>
+                        <a href="movie.php?id=<?= (int) $movie['movieID'] ?>" class="block border-t border-stone-300 pt-3 text-[10px] font-bold uppercase tracking-widest hover:text-[#b43a2d]">View showtimes <span class="float-right">→</span></a>
                     </div>
                 </article>
             <?php endforeach; ?>
@@ -158,7 +150,7 @@ $initials = static function (string $title): string {
             <?php if ($showtimes): ?>
                 <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     <?php foreach ($showtimes as $showtime): ?>
-                        <a href="#" class="group flex items-center justify-between border border-[#f8e8bd]/20 p-5 hover:border-[#d5a447]">
+                        <a href="booking.php?showtime_id=<?= (int) $showtime['showtimeID'] ?>" class="group flex items-center justify-between border border-[#f8e8bd]/20 p-5 hover:border-[#d5a447]">
                             <span><strong class="serif block text-lg"><?= $e($movieTitles[(int) $showtime['movieID']] ?? 'Feature presentation') ?></strong><small class="mt-1 block text-[10px] uppercase tracking-widest text-[#f8e8bd]/55"><?= $e($showtime['theater']) ?> · <?= date('D, M j · g:i A', strtotime($showtime['starts_at'])) ?></small></span>
                             <span class="text-sm text-[#d5a447]">$<?= $e($showtime['price']) ?> <span class="ml-2 transition group-hover:ml-3">→</span></span>
                         </a>
