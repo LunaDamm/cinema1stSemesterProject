@@ -118,7 +118,18 @@ try {
                 $bookingId ??= (int) $pdo->lastInsertId();
             }
             $pdo->commit();
-            $success = count($selectedSeats) . " seats are reserved. Your booking reference is #{$bookingId}.";
+            $_SESSION['booking_confirmation'] = [
+                'booking_id' => $bookingId,
+                'movie_title' => $showtime['title'],
+                'theater' => $showtime['theater'],
+                'starts_at' => $showtime['starts_at'],
+                'price' => $showtime['price'],
+                'seats' => $selectedSeats,
+                'name' => $name,
+                'email' => $email,
+            ];
+            header('Location: booking_complete.php');
+            exit;
         } catch (PDOException $exception) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();

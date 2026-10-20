@@ -4,6 +4,9 @@ declare(strict_types=1);
 $movies = [];
 $showtimes = [];
 $theaters = [];
+$settings = [];
+$news = [];
+$featuredShowtime = null;
 $databaseError = null;
 
 try {
@@ -35,6 +38,23 @@ try {
          FROM theaters
          ORDER BY theaterID"
     )->fetchAll();
+
+    foreach ($pdo->query('SELECT setting_key, setting_value FROM site_settings') as $setting) {
+        $settings[$setting['setting_key']] = $setting['setting_value'];
+    }
+    $news = $pdo->query(
+        'SELECT title, body, published_at FROM news WHERE is_published = 1 ORDER BY published_at DESC LIMIT 3'
+    )->fetchAll();
+    $featuredStatement = $pdo->query(
+        "SELECT st.showtimeID, st.starts_at, m.title, t.name AS theater
+         FROM showtimes st
+         JOIN movies m ON m.movieID = st.movieID
+         JOIN theaters t ON t.theaterID = st.theaterID
+         WHERE st.is_featured = 1 AND st.starts_at >= NOW()
+         ORDER BY st.starts_at ASC
+         LIMIT 1"
+    );
+    $featuredShowtime = $featuredStatement->fetch() ?: null;
 } catch (PDOException $exception) {
     $databaseError = 'The projector is warming up. Showing the house programme while we reconnect.';
 }
@@ -101,7 +121,7 @@ $initials = static function (string $title): string {
             <div class="relative z-10">
                 <p class="mb-5 text-xs uppercase tracking-[.35em] text-[#f3c76d]">Tonight at The Marquee</p>
                 <h1 class="serif max-w-2xl text-6xl font-bold leading-[.93] md:text-8xl">The art of the moving picture.</h1>
-                <p class="mt-7 max-w-lg text-sm leading-7 text-[#f8e8bd]/75">A modern cinema with an old soul. Find your next great picture, settle into velvet, and let the house lights go down.</p>
+                <p class="mt-7 max-w-lg text-sm leading-7 text-[#f8e8bd]/75"><?= nl2br($e($settings['company_description'] ?? 'A modern cinema with an old soul. Find your next great picture, settle into velvet, and let the house lights go down.')) ?></p>
                 <div class="mt-9 flex flex-wrap gap-3">
                     <a href="#programme" class="rounded-full bg-[#f3c76d] px-6 py-3 text-xs font-bold uppercase tracking-widest text-[#381b18]">See the programme ↘</a>
                     <span class="rounded-full border border-[#f8e8bd]/30 px-6 py-3 text-xs uppercase tracking-widest">35mm spirit · Digital comfort</span>
@@ -112,7 +132,7 @@ $initials = static function (string $title): string {
                     <div class="relative z-10 px-8 text-center text-[#f8e8bd]">
                         <p class="text-[10px] uppercase tracking-[.4em]">A presentation by</p>
                         <p class="serif my-7 text-6xl font-bold leading-none">THE<br>MARQUEE</p>
-                        <p class="border-y border-[#f8e8bd]/50 py-3 text-xs uppercase tracking-[.25em]"><?= $e($featured['title']) ?></p>
+                        <p class="border-y border-[#f8e8bd]/50 py-3 text-xs uppercase tracking-[.25em]"><?= $e($featuredShowtime['title'] ?? $featured['title']) ?></p>
                     </div>
                 </div>
                 <span class="absolute -right-5 -top-5 rounded-full bg-[#d5a447] px-3 py-5 text-center text-[10px] font-bold uppercase leading-3 text-stone-900">Now<br>showing</span>
@@ -162,17 +182,29 @@ $initials = static function (string $title): string {
         </div>
     </section>
 
+    <?php if ($news): ?>
+    <section class="mx-auto max-w-7xl px-6 py-16">
+        <p class="mb-2 text-xs uppercase tracking-[.3em] text-[#b43a2d]">From the house</p>
+        <h2 class="serif mb-8 text-5xl font-bold">Latest news</h2>
+        <div class="grid gap-6 md:grid-cols-3">
+            <?php foreach ($news as $item): ?>
+                <article class="bg-white/60 p-6"><p class="text-[10px] uppercase tracking-widest text-stone-500"><?= e(date('M j, Y', strtotime($item['published_at']))) ?></p><h3 class="serif mt-3 text-2xl font-bold"><?= e($item['title']) ?></h3><p class="mt-3 whitespace-pre-line text-sm leading-6 text-stone-600"><?= e($item['body']) ?></p></article>
+            <?php endforeach; ?>
+        </div>
+    </section>
+    <?php endif; ?>
+
     <section id="about" class="mx-auto grid max-w-7xl gap-12 px-6 py-20 md:grid-cols-2">
         <div><p class="mb-2 text-xs uppercase tracking-[.3em] text-[#b43a2d]">The house</p><h2 class="serif text-5xl font-bold">Small seats.<br>Big pictures.</h2></div>
         <div class="grid grid-cols-2 gap-6 text-sm leading-6 text-stone-600">
-            <div><strong class="serif mb-2 block text-2xl text-stone-900">01</strong>Curated films, comfortable rooms, and the kind of service that makes an evening of it.</div>
+            <div><strong class="serif mb-2 block text-2xl text-stone-900">01</strong><?= nl2br($e($settings['company_description'] ?? 'Curated films, comfortable rooms, and the kind of service that makes an evening of it.')) ?></div>
             <div><strong class="serif mb-2 block text-2xl text-stone-900">02</strong>Our screens are showing <?= count($movies) ?> pictures from the SQL programme tonight.</div>
             <?php foreach (array_slice($theaters, 0, 2) as $theater): ?><div><strong class="serif mb-2 block text-2xl text-stone-900"><?= $e($theater['seats']) ?></strong><?= $e($theater['name']) ?> seats.</div><?php endforeach; ?>
         </div>
     </section>
 </main>
 <footer id="visit" class="border-t border-stone-900/15 px-6 py-8 text-xs uppercase tracking-widest text-stone-500">
-    <div class="mx-auto flex max-w-7xl flex-col justify-between gap-3 sm:flex-row"><span>The Marquee Cinema · 14 Picturehouse Lane</span><span>Doors open 30 minutes before showtime · © <?= date('Y') ?></span></div>
+    <div class="mx-auto flex max-w-7xl flex-col justify-between gap-3 sm:flex-row"><span><?= nl2br($e($settings['contact_information'] ?? 'The Marquee Cinema · 14 Picturehouse Lane')) ?></span><span><?= nl2br($e($settings['opening_hours'] ?? 'Doors open 30 minutes before showtime')) ?> · © <?= date('Y') ?></span></div>
 </footer>
 <script>
     const search = document.querySelector('#search');
