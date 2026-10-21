@@ -108,10 +108,9 @@ $initials = static function (string $title): string {
         </a>
         <nav class="hidden items-center gap-8 text-xs uppercase tracking-[.18em] md:flex">
             <a href="#programme" class="hover:text-[#b43a2d]">Programme</a>
-            <a href="#about" class="hover:text-[#b43a2d]">Our house</a>
+            <a href="#showtimes" class="hover:text-[#b43a2d]">Coming up</a>
             <a href="#visit" class="hover:text-[#b43a2d]">Visit us</a>
         </nav>
-        <a href="#programme" class="rounded-full border border-stone-900 px-4 py-2 text-xs uppercase tracking-widest hover:bg-stone-900 hover:text-[#f5f0e8]">Book a seat</a>
     </div>
 </header>
 
@@ -198,8 +197,7 @@ $initials = static function (string $title): string {
         <div><p class="mb-2 text-xs uppercase tracking-[.3em] text-[#b43a2d]">The house</p><h2 class="serif text-5xl font-bold">Small seats.<br>Big pictures.</h2></div>
         <div class="grid grid-cols-2 gap-6 text-sm leading-6 text-stone-600">
             <div><strong class="serif mb-2 block text-2xl text-stone-900">01</strong><?= nl2br($e($settings['company_description'] ?? 'Curated films, comfortable rooms, and the kind of service that makes an evening of it.')) ?></div>
-            <div><strong class="serif mb-2 block text-2xl text-stone-900">02</strong>Our screens are showing <?= count($movies) ?> pictures from the SQL programme tonight.</div>
-            <?php foreach (array_slice($theaters, 0, 2) as $theater): ?><div><strong class="serif mb-2 block text-2xl text-stone-900"><?= $e($theater['seats']) ?></strong><?= $e($theater['name']) ?> seats.</div><?php endforeach; ?>
+            <div><strong class="serif mb-2 block text-2xl text-stone-900">02</strong>:D</div>
         </div>
     </section>
 </main>

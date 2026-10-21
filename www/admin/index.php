@@ -141,17 +141,297 @@ $csrf = e($_SESSION['csrf_token']);
 ?>
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Owner dashboard — The Marquee</title><script src="https://cdn.tailwindcss.com"></script></head>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Owner dashboard — The Marquee</title><script src="https://cdn.tailwindcss.com"></script></head>
 <body class="bg-[#f5f0e8] text-[#191716]">
-<header class="bg-[#211b1a] px-6 py-5 text-[#f8e8bd]"><div class="mx-auto flex max-w-7xl items-center justify-between"><div><p class="text-xs uppercase tracking-[.3em] text-[#d5a447]">The Marquee</p><h1 class="font-serif text-3xl font-bold">Owner dashboard</h1></div><a href="logout.php" class="text-xs uppercase tracking-widest hover:text-[#d5a447]">Sign out</a></div></header>
+<header class="bg-[#211b1a] px-6 py-5 text-[#f8e8bd]">
+<div class="mx-auto flex max-w-7xl items-center justify-between">
+<div>
+<p class="text-xs uppercase tracking-[.3em] text-[#d5a447]">The Marquee</p>
+<h1 class="font-serif text-3xl font-bold">Owner dashboard</h1>
+</div>
+<a href="logout.php" class="text-xs uppercase tracking-widest hover:text-[#d5a447]">Sign out</a>
+</div>
+</header>
 <main class="mx-auto max-w-7xl space-y-10 px-6 py-10">
-<?php if ($message): ?><p class="border-l-2 border-[#b43a2d] bg-white/70 p-4 text-sm"><?= e($message) ?></p><?php endif; ?>
-<section><h2 class="mb-4 font-serif text-3xl font-bold">Company information</h2><form method="post" class="grid gap-4 bg-white/60 p-6 md:grid-cols-3"><input type="hidden" name="csrf_token" value="<?= $csrf ?>"><input type="hidden" name="action" value="settings"><label class="text-xs uppercase tracking-widest">Description<textarea name="company_description" rows="4" class="mt-2 w-full border border-stone-300 bg-transparent p-2 text-sm"><?= e($settings['company_description'] ?? '') ?></textarea></label><label class="text-xs uppercase tracking-widest">Opening hours<textarea name="opening_hours" rows="4" class="mt-2 w-full border border-stone-300 bg-transparent p-2 text-sm"><?= e($settings['opening_hours'] ?? '') ?></textarea></label><label class="text-xs uppercase tracking-widest">Contact information<textarea name="contact_information" rows="4" class="mt-2 w-full border border-stone-300 bg-transparent p-2 text-sm"><?= e($settings['contact_information'] ?? '') ?></textarea><button class="mt-3 bg-[#211b1a] px-4 py-3 text-xs uppercase tracking-widest text-[#f8e8bd]">Save details</button></label></form></section>
-<section><div class="mb-4 flex items-end justify-between"><h2 class="font-serif text-3xl font-bold">Movies</h2><span class="text-xs uppercase tracking-widest text-stone-500"><?= count($movies) ?> titles</span></div><form method="post" class="mb-5 grid gap-3 bg-white/60 p-6 md:grid-cols-4"><input type="hidden" name="csrf_token" value="<?= $csrf ?>"><input type="hidden" name="action" value="movie_save"><input name="title" required placeholder="Title" class="border border-stone-300 bg-transparent p-3 text-sm"><input name="release_date" required type="date" class="border border-stone-300 bg-transparent p-3 text-sm"><input name="rating" type="number" min="0" max="10" step=".1" placeholder="Rating" class="border border-stone-300 bg-transparent p-3 text-sm"><button class="bg-[#b43a2d] px-4 py-3 text-xs uppercase tracking-widest text-white">Add movie</button></form><div class="grid gap-3 md:grid-cols-2"><?php foreach ($movies as $movie): ?><form method="post" class="flex flex-wrap items-center gap-2 bg-white/60 p-4"><input type="hidden" name="csrf_token" value="<?= $csrf ?>"><input type="hidden" name="action" value="movie_save"><input type="hidden" name="movie_id" value="<?= (int) $movie['movieID'] ?>"><input name="title" value="<?= e($movie['title']) ?>" class="min-w-40 flex-1 border-b border-stone-300 bg-transparent p-2 text-sm"><input name="release_date" type="date" value="<?= e($movie['release_date']) ?>" class="border-b border-stone-300 bg-transparent p-2 text-sm"><input name="rating" type="number" min="0" max="10" step=".1" value="<?= e($movie['rating']) ?>" class="w-20 border-b border-stone-300 bg-transparent p-2 text-sm"><button class="text-xs uppercase tracking-widest text-[#b43a2d]">Update</button><button formaction="index.php" name="action" value="movie_delete" class="text-xs uppercase tracking-widest text-stone-500">Delete</button></form><?php endforeach; ?></div></section>
-<section><h2 class="mb-4 font-serif text-3xl font-bold">Showings & daily premieres</h2><form method="post" class="mb-5 grid gap-3 bg-white/60 p-6 md:grid-cols-5"><input type="hidden" name="csrf_token" value="<?= $csrf ?>"><input type="hidden" name="action" value="showtime_save"><select name="movie_id" required class="border border-stone-300 bg-transparent p-3 text-sm"><option value="">Movie</option><?php foreach ($movies as $movie): ?><option value="<?= (int) $movie['movieID'] ?>"><?= e($movie['title']) ?></option><?php endforeach; ?></select><select name="theater_id" required class="border border-stone-300 bg-transparent p-3 text-sm"><option value="">Theater</option><?php foreach ($theaters as $theater): ?><option value="<?= (int) $theater['theaterID'] ?>"><?= e($theater['name']) ?></option><?php endforeach; ?></select><input name="starts_at" required type="datetime-local" class="border border-stone-300 bg-transparent p-3 text-sm"><input name="price" required type="number" min="0" placeholder="Price" class="border border-stone-300 bg-transparent p-3 text-sm"><label class="flex items-center gap-2 text-xs uppercase tracking-widest"><input type="checkbox" name="is_featured"> Front page premiere</label><button class="bg-[#b43a2d] px-4 py-3 text-xs uppercase tracking-widest text-white md:col-span-5">Add showing</button></form><div class="overflow-x-auto bg-white/60"><table class="w-full text-left text-sm"><thead class="border-b border-stone-300 text-xs uppercase tracking-widest"><tr><th class="p-4">Movie</th><th class="p-4">Theater</th><th class="p-4">Starts</th><th class="p-4">Price</th><th class="p-4">Premiere</th><th class="p-4"></th></tr></thead><tbody><?php foreach ($showtimes as $showtime): ?><tr class="border-b border-stone-200"><form method="post"><input type="hidden" name="csrf_token" value="<?= $csrf ?>"><input type="hidden" name="action" value="showtime_save"><input type="hidden" name="showtime_id" value="<?= (int) $showtime['showtimeID'] ?>"><td class="p-4"><select name="movie_id" class="border-b border-stone-300 bg-transparent p-2"><?php foreach ($movies as $movie): ?><option value="<?= (int) $movie['movieID'] ?>" <?= (int) $movie['movieID'] === (int) $showtime['movieID'] ? 'selected' : '' ?>><?= e($movie['title']) ?></option><?php endforeach; ?></select></td><td class="p-4"><select name="theater_id" class="border-b border-stone-300 bg-transparent p-2"><?php foreach ($theaters as $theater): ?><option value="<?= (int) $theater['theaterID'] ?>" <?= (int) $theater['theaterID'] === (int) $showtime['theaterID'] ? 'selected' : '' ?>><?= e($theater['name']) ?></option><?php endforeach; ?></select></td><td class="p-4"><input name="starts_at" type="datetime-local" value="<?= e(date('Y-m-d\TH:i', strtotime($showtime['starts_at']))) ?>" class="border-b border-stone-300 bg-transparent p-2"></td><td class="p-4"><input name="price" type="number" min="0" value="<?= e($showtime['price']) ?>" class="w-20 border-b border-stone-300 bg-transparent p-2"></td><td class="p-4"><input type="checkbox" name="is_featured" <?= $showtime['is_featured'] ? 'checked' : '' ?>></td><td class="p-4"><button class="text-xs uppercase tracking-widest text-[#b43a2d]">Update</button></form><form method="post" class="mt-2"><input type="hidden" name="csrf_token" value="<?= $csrf ?>"><input type="hidden" name="action" value="showtime_delete"><input type="hidden" name="showtime_id" value="<?= (int) $showtime['showtimeID'] ?>"><button class="text-xs uppercase tracking-widest text-stone-500">Delete</button></form></td></tr><?php endforeach; ?></tbody></table></div></section>
-<section><h2 class="mb-4 font-serif text-3xl font-bold">News</h2><form method="post" class="grid gap-3 bg-white/60 p-6 md:grid-cols-3"><input type="hidden" name="csrf_token" value="<?= $csrf ?>"><input type="hidden" name="action" value="news_save"><input name="news_title" required placeholder="Headline" class="border border-stone-300 bg-transparent p-3 text-sm"><textarea name="news_body" required placeholder="News text" class="border border-stone-300 bg-transparent p-3 text-sm"></textarea><label class="text-xs uppercase tracking-widest"><span class="flex items-center gap-2"><input type="checkbox" name="is_published" checked> Published</span><button class="mt-4 bg-[#b43a2d] px-4 py-3 text-xs uppercase tracking-widest text-white">Add news</button></label></form><div class="mt-4 space-y-3"><?php foreach ($news as $item): ?><form method="post" class="grid gap-3 bg-white/60 p-4 md:grid-cols-[1fr_2fr_auto_auto]"><input type="hidden" name="csrf_token" value="<?= $csrf ?>"><input type="hidden" name="action" value="news_save"><input type="hidden" name="news_id" value="<?= (int) $item['newsID'] ?>"><input name="news_title" required value="<?= e($item['title']) ?>" class="border-b border-stone-300 bg-transparent p-2 text-sm"><textarea name="news_body" required class="border-b border-stone-300 bg-transparent p-2 text-sm"><?= e($item['body']) ?></textarea><label class="flex items-center gap-2 text-xs uppercase tracking-widest"><input type="checkbox" name="is_published" <?= $item['is_published'] ? 'checked' : '' ?>> Published</label><span><button class="text-xs uppercase tracking-widest text-[#b43a2d]">Update</button><button formaction="index.php" name="action" value="news_delete" class="ml-3 text-xs uppercase tracking-widest text-stone-500">Delete</button></span></form><?php endforeach; ?></div></section>
-<section><h2 class="mb-4 font-serif text-3xl font-bold">Booking overview</h2><div class="overflow-x-auto bg-white/60"><table class="w-full text-left text-sm"><thead class="border-b border-stone-300 text-xs uppercase tracking-widest"><tr><th class="p-4">Customer</th><th class="p-4">Movie / showing</th><th class="p-4">Seat</th><th class="p-4">Paid</th><th class="p-4">Booked</th></tr></thead><tbody><?php foreach ($bookings as $booking): ?><tr class="border-b border-stone-200"><td class="p-4"><?= e($booking['username']) ?><br><span class="text-xs text-stone-500"><?= e($booking['email']) ?></span></td><td class="p-4"><?= e($booking['title']) ?><br><span class="text-xs text-stone-500"><?= e($booking['starts_at']) ?></span></td><td class="p-4">Row <?= (int) $booking['seat_row'] ?> / <?= (int) $booking['seat_number'] ?></td><td class="p-4">$<?= e($booking['price_paid']) ?></td><td class="p-4"><?= e($booking['created_at']) ?></td></tr><?php endforeach; ?></tbody></table></div></section>
-<section><h2 class="mb-4 font-serif text-3xl font-bold">Invoice creator</h2><form method="post" class="grid gap-3 bg-white/60 p-6 md:grid-cols-3"><input type="hidden" name="csrf_token" value="<?= $csrf ?>"><input type="hidden" name="action" value="invoice_create"><input name="invoice_number" required placeholder="Invoice number" class="border border-stone-300 bg-transparent p-3 text-sm"><input name="customer_name" required placeholder="Customer name" class="border border-stone-300 bg-transparent p-3 text-sm"><input name="customer_email" required type="email" placeholder="Customer email" class="border border-stone-300 bg-transparent p-3 text-sm"><input name="amount" required type="number" min="0" step=".01" placeholder="Amount" class="border border-stone-300 bg-transparent p-3 text-sm"><select name="status" class="border border-stone-300 bg-transparent p-3 text-sm"><option>draft</option><option>sent</option><option>paid</option><option>void</option></select><textarea name="notes" placeholder="Notes" class="border border-stone-300 bg-transparent p-3 text-sm"></textarea><button class="bg-[#b43a2d] px-4 py-3 text-xs uppercase tracking-widest text-white md:col-span-3">Create invoice</button></form><div class="mt-4 overflow-x-auto bg-white/60"><table class="w-full text-left text-sm"><thead class="border-b border-stone-300 text-xs uppercase tracking-widest"><tr><th class="p-4">Number</th><th class="p-4">Customer</th><th class="p-4">Amount</th><th class="p-4">Status</th><th class="p-4"></th></tr></thead><tbody><?php foreach ($invoices as $invoice): ?><tr class="border-b border-stone-200"><td class="p-4"><?= e($invoice['invoice_number']) ?></td><td class="p-4"><?= e($invoice['customer_name']) ?><br><span class="text-xs text-stone-500"><?= e($invoice['customer_email']) ?></span></td><td class="p-4">$<?= e($invoice['amount']) ?></td><td class="p-4"><form method="post" class="flex gap-2"><input type="hidden" name="csrf_token" value="<?= $csrf ?>"><input type="hidden" name="action" value="invoice_update"><input type="hidden" name="invoice_id" value="<?= (int) $invoice['invoiceID'] ?>"><select name="status" class="border-b border-stone-300 bg-transparent text-sm"><option <?= $invoice['status'] === 'draft' ? 'selected' : '' ?>>draft</option><option <?= $invoice['status'] === 'sent' ? 'selected' : '' ?>>sent</option><option <?= $invoice['status'] === 'paid' ? 'selected' : '' ?>>paid</option><option <?= $invoice['status'] === 'void' ? 'selected' : '' ?>>void</option></select><button class="text-xs uppercase tracking-widest text-[#b43a2d]">Update</button></form></td><td class="p-4"><form method="post"><input type="hidden" name="csrf_token" value="<?= $csrf ?>"><input type="hidden" name="action" value="invoice_delete"><input type="hidden" name="invoice_id" value="<?= (int) $invoice['invoiceID'] ?>"><button class="text-xs uppercase tracking-widest text-stone-500">Delete</button></form></td></tr><?php endforeach; ?></tbody></table></div></section>
+<?php if ($message): ?>
+<p class="border-l-2 border-[#b43a2d] bg-white/70 p-4 text-sm">
+<?= e($message) ?>
+</p>
+<?php endif; ?>
+<section>
+<h2 class="mb-4 font-serif text-3xl font-bold">Company information</h2>
+<form method="post" class="grid gap-4 bg-white/60 p-6 md:grid-cols-3">
+<input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+<input type="hidden" name="action" value="settings">
+<label class="text-xs uppercase tracking-widest">Description<textarea name="company_description" rows="4" class="mt-2 w-full border border-stone-300 bg-transparent p-2 text-sm"><?= e($settings['company_description'] ?? '') ?></textarea></label>
+<label class="text-xs uppercase tracking-widest">Opening hours<textarea name="opening_hours" rows="4" class="mt-2 w-full border border-stone-300 bg-transparent p-2 text-sm"><?= e($settings['opening_hours'] ?? '') ?></textarea></label>
+<label class="text-xs uppercase tracking-widest">Contact information<textarea name="contact_information" rows="4" class="mt-2 w-full border border-stone-300 bg-transparent p-2 text-sm"><?= e($settings['contact_information'] ?? '') ?></textarea><button class="mt-3 bg-[#211b1a] px-4 py-3 text-xs uppercase tracking-widest text-[#f8e8bd]">Save details</button>
+</label>
+</form>
+</section>
+<section>
+<div class="mb-4 flex items-end justify-between">
+<h2 class="font-serif text-3xl font-bold">Movies</h2>
+<span class="text-xs uppercase tracking-widest text-stone-500">
+<?= count($movies) ?> titles</span>
+</div>
+<form method="post" class="mb-5 grid gap-3 bg-white/60 p-6 md:grid-cols-4">
+<input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+<input type="hidden" name="action" value="movie_save">
+<input name="title" required placeholder="Title" class="border border-stone-300 bg-transparent p-3 text-sm">
+<input name="release_date" required type="date" class="border border-stone-300 bg-transparent p-3 text-sm">
+<input name="rating" type="number" min="0" max="10" step=".1" placeholder="Rating" class="border border-stone-300 bg-transparent p-3 text-sm">
+<button class="bg-[#b43a2d] px-4 py-3 text-xs uppercase tracking-widest text-white">Add movie</button>
+</form>
+<div class="grid gap-3 md:grid-cols-2">
+<?php foreach ($movies as $movie): ?>
+<form method="post" class="flex flex-wrap items-center gap-2 bg-white/60 p-4">
+<input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+<input type="hidden" name="action" value="movie_save">
+<input type="hidden" name="movie_id" value="<?= (int) $movie['movieID'] ?>">
+<input name="title" value="<?= e($movie['title']) ?>" class="min-w-40 flex-1 border-b border-stone-300 bg-transparent p-2 text-sm">
+<input name="release_date" type="date" value="<?= e($movie['release_date']) ?>" class="border-b border-stone-300 bg-transparent p-2 text-sm">
+<input name="rating" type="number" min="0" max="10" step=".1" value="<?= e($movie['rating']) ?>" class="w-20 border-b border-stone-300 bg-transparent p-2 text-sm">
+<button class="text-xs uppercase tracking-widest text-[#b43a2d]">Update</button>
+<button formaction="index.php" name="action" value="movie_delete" class="text-xs uppercase tracking-widest text-stone-500">Delete</button>
+</form>
+<?php endforeach; ?>
+</div>
+</section>
+<section>
+<h2 class="mb-4 font-serif text-3xl font-bold">Showings & daily premieres</h2>
+<form method="post" class="mb-5 grid gap-3 bg-white/60 p-6 md:grid-cols-5">
+<input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+<input type="hidden" name="action" value="showtime_save">
+<select name="movie_id" required class="border border-stone-300 bg-transparent p-3 text-sm">
+<option value="">Movie</option>
+<?php foreach ($movies as $movie): ?>
+<option value="<?= (int) $movie['movieID'] ?>">
+<?= e($movie['title']) ?>
+</option>
+<?php endforeach; ?>
+</select>
+<select name="theater_id" required class="border border-stone-300 bg-transparent p-3 text-sm">
+<option value="">Theater</option>
+<?php foreach ($theaters as $theater): ?>
+<option value="<?= (int) $theater['theaterID'] ?>">
+<?= e($theater['name']) ?>
+</option>
+<?php endforeach; ?>
+</select>
+<input name="starts_at" required type="datetime-local" class="border border-stone-300 bg-transparent p-3 text-sm">
+<input name="price" required type="number" min="0" placeholder="Price" class="border border-stone-300 bg-transparent p-3 text-sm">
+<label class="flex items-center gap-2 text-xs uppercase tracking-widest">
+<input type="checkbox" name="is_featured"> Front page premiere</label>
+<button class="bg-[#b43a2d] px-4 py-3 text-xs uppercase tracking-widest text-white md:col-span-5">Add showing</button>
+</form>
+<div class="overflow-x-auto bg-white/60">
+<table class="w-full text-left text-sm">
+<thead class="border-b border-stone-300 text-xs uppercase tracking-widest">
+<tr>
+<th class="p-4">Movie</th>
+<th class="p-4">Theater</th>
+<th class="p-4">Starts</th>
+<th class="p-4">Price</th>
+<th class="p-4">Premiere</th>
+<th class="p-4">
+</th>
+</tr>
+</thead>
+<tbody>
+<?php foreach ($showtimes as $showtime): ?>
+<tr class="border-b border-stone-200">
+<form method="post">
+<input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+<input type="hidden" name="action" value="showtime_save">
+<input type="hidden" name="showtime_id" value="<?= (int) $showtime['showtimeID'] ?>">
+<td class="p-4">
+<select name="movie_id" class="border-b border-stone-300 bg-transparent p-2">
+<?php foreach ($movies as $movie): ?>
+<option value="<?= (int) $movie['movieID'] ?>" <?= (int) $movie['movieID'] === (int) $showtime['movieID'] ? 'selected' : '' ?>>
+<?= e($movie['title']) ?>
+</option>
+<?php endforeach; ?>
+</select>
+</td>
+<td class="p-4">
+<select name="theater_id" class="border-b border-stone-300 bg-transparent p-2">
+<?php foreach ($theaters as $theater): ?>
+<option value="<?= (int) $theater['theaterID'] ?>" <?= (int) $theater['theaterID'] === (int) $showtime['theaterID'] ? 'selected' : '' ?>>
+<?= e($theater['name']) ?>
+</option>
+<?php endforeach; ?>
+</select>
+</td>
+<td class="p-4">
+<input name="starts_at" type="datetime-local" value="<?= e(date('Y-m-d\TH:i', strtotime($showtime['starts_at']))) ?>" class="border-b border-stone-300 bg-transparent p-2">
+</td>
+<td class="p-4">
+<input name="price" type="number" min="0" value="<?= e($showtime['price']) ?>" class="w-20 border-b border-stone-300 bg-transparent p-2">
+</td>
+<td class="p-4">
+<input type="checkbox" name="is_featured" <?= $showtime['is_featured'] ? 'checked' : '' ?>>
+</td>
+<td class="p-4">
+<button class="text-xs uppercase tracking-widest text-[#b43a2d]">Update</button>
+</form>
+<form method="post" class="mt-2">
+<input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+<input type="hidden" name="action" value="showtime_delete">
+<input type="hidden" name="showtime_id" value="<?= (int) $showtime['showtimeID'] ?>">
+<button class="text-xs uppercase tracking-widest text-stone-500">Delete</button>
+</form>
+</td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+</div>
+</section>
+<section>
+<h2 class="mb-4 font-serif text-3xl font-bold">News</h2>
+<form method="post" class="grid gap-3 bg-white/60 p-6 md:grid-cols-3">
+<input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+<input type="hidden" name="action" value="news_save">
+<input name="news_title" required placeholder="Headline" class="border border-stone-300 bg-transparent p-3 text-sm"><textarea name="news_body" required placeholder="News text" class="border border-stone-300 bg-transparent p-3 text-sm"></textarea><label class="text-xs uppercase tracking-widest">
+<span class="flex items-center gap-2">
+<input type="checkbox" name="is_published" checked> Published</span>
+<button class="mt-4 bg-[#b43a2d] px-4 py-3 text-xs uppercase tracking-widest text-white">Add news</button>
+</label>
+</form>
+<div class="mt-4 space-y-3">
+<?php foreach ($news as $item): ?>
+<form method="post" class="grid gap-3 bg-white/60 p-4 md:grid-cols-[1fr_2fr_auto_auto]">
+<input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+<input type="hidden" name="action" value="news_save">
+<input type="hidden" name="news_id" value="<?= (int) $item['newsID'] ?>">
+<input name="news_title" required value="<?= e($item['title']) ?>" class="border-b border-stone-300 bg-transparent p-2 text-sm"><textarea name="news_body" required class="border-b border-stone-300 bg-transparent p-2 text-sm"><?= e($item['body']) ?></textarea><label class="flex items-center gap-2 text-xs uppercase tracking-widest">
+<input type="checkbox" name="is_published" <?= $item['is_published'] ? 'checked' : '' ?>> Published</label>
+<span>
+<button class="text-xs uppercase tracking-widest text-[#b43a2d]">Update</button>
+<button formaction="index.php" name="action" value="news_delete" class="ml-3 text-xs uppercase tracking-widest text-stone-500">Delete</button>
+</span>
+</form>
+<?php endforeach; ?>
+</div>
+</section>
+<section>
+<h2 class="mb-4 font-serif text-3xl font-bold">Booking overview</h2>
+<div class="overflow-x-auto bg-white/60">
+<table class="w-full text-left text-sm">
+<thead class="border-b border-stone-300 text-xs uppercase tracking-widest">
+<tr>
+<th class="p-4">Customer</th>
+<th class="p-4">Movie / showing</th>
+<th class="p-4">Seat</th>
+<th class="p-4">Paid</th>
+<th class="p-4">Booked</th>
+</tr>
+</thead>
+<tbody>
+<?php foreach ($bookings as $booking): ?>
+<tr class="border-b border-stone-200">
+<td class="p-4">
+<?= e($booking['username']) ?>
+<br>
+<span class="text-xs text-stone-500">
+<?= e($booking['email']) ?>
+</span>
+</td>
+<td class="p-4">
+<?= e($booking['title']) ?>
+<br>
+<span class="text-xs text-stone-500">
+<?= e($booking['starts_at']) ?>
+</span>
+</td>
+<td class="p-4">Row <?= (int) $booking['seat_row'] ?> / <?= (int) $booking['seat_number'] ?>
+</td>
+<td class="p-4">$<?= e($booking['price_paid']) ?>
+</td>
+<td class="p-4">
+<?= e($booking['created_at']) ?>
+</td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+</div>
+</section>
+<section>
+<h2 class="mb-4 font-serif text-3xl font-bold">Invoice creator</h2>
+<form method="post" class="grid gap-3 bg-white/60 p-6 md:grid-cols-3">
+<input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+<input type="hidden" name="action" value="invoice_create">
+<input name="invoice_number" required placeholder="Invoice number" class="border border-stone-300 bg-transparent p-3 text-sm">
+<input name="customer_name" required placeholder="Customer name" class="border border-stone-300 bg-transparent p-3 text-sm">
+<input name="customer_email" required type="email" placeholder="Customer email" class="border border-stone-300 bg-transparent p-3 text-sm">
+<input name="amount" required type="number" min="0" step=".01" placeholder="Amount" class="border border-stone-300 bg-transparent p-3 text-sm">
+<select name="status" class="border border-stone-300 bg-transparent p-3 text-sm">
+<option>draft</option>
+<option>sent</option>
+<option>paid</option>
+<option>void</option>
+</select><textarea name="notes" placeholder="Notes" class="border border-stone-300 bg-transparent p-3 text-sm"></textarea><button class="bg-[#b43a2d] px-4 py-3 text-xs uppercase tracking-widest text-white md:col-span-3">Create invoice</button>
+</form>
+<div class="mt-4 overflow-x-auto bg-white/60">
+<table class="w-full text-left text-sm">
+<thead class="border-b border-stone-300 text-xs uppercase tracking-widest">
+<tr>
+<th class="p-4">Number</th>
+<th class="p-4">Customer</th>
+<th class="p-4">Amount</th>
+<th class="p-4">Status</th>
+<th class="p-4">
+</th>
+</tr>
+</thead>
+<tbody>
+<?php foreach ($invoices as $invoice): ?>
+<tr class="border-b border-stone-200">
+<td class="p-4">
+<?= e($invoice['invoice_number']) ?>
+</td>
+<td class="p-4">
+<?= e($invoice['customer_name']) ?>
+<br>
+<span class="text-xs text-stone-500">
+<?= e($invoice['customer_email']) ?>
+</span>
+</td>
+<td class="p-4">$<?= e($invoice['amount']) ?>
+</td>
+<td class="p-4">
+<form method="post" class="flex gap-2">
+<input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+<input type="hidden" name="action" value="invoice_update">
+<input type="hidden" name="invoice_id" value="<?= (int) $invoice['invoiceID'] ?>">
+<select name="status" class="border-b border-stone-300 bg-transparent text-sm">
+<option <?= $invoice['status'] === 'draft' ? 'selected' : '' ?>>draft</option>
+<option <?= $invoice['status'] === 'sent' ? 'selected' : '' ?>>sent</option>
+<option <?= $invoice['status'] === 'paid' ? 'selected' : '' ?>>paid</option>
+<option <?= $invoice['status'] === 'void' ? 'selected' : '' ?>>void</option>
+</select>
+<button class="text-xs uppercase tracking-widest text-[#b43a2d]">Update</button>
+</form>
+</td>
+<td class="p-4">
+<form method="post">
+<input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+<input type="hidden" name="action" value="invoice_delete">
+<input type="hidden" name="invoice_id" value="<?= (int) $invoice['invoiceID'] ?>">
+<button class="text-xs uppercase tracking-widest text-stone-500">Delete</button>
+</form>
+</td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+</div>
+</section>
 </main>
 </body>
 </html>
