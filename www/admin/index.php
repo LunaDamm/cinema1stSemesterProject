@@ -111,6 +111,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
                 $message = 'Invoice created.';
                 break;
+            case 'user_create':
+                $username = trim((string) ($_POST['username'] ?? ''));
+                $email = trim((string) ($_POST['email'] ?? ''));
+                $password = (string) ($_POST['password'] ?? '');
+                if (!preg_match('/^[A-Za-z0-9_]{3,20}$/', $username) || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 12) {
+                    throw new RuntimeException('Use a 3-20 character username, a valid email, and a password of at least 12 characters.');
+                }
+                $statement = $pdo->prepare(
+                    "INSERT INTO users (username, email, password_hash, role) VALUES (:username, :email, :password_hash, 'user')"
+                );
+                $statement->execute([
+                    'username' => $username,
+                    'email' => $email,
+                    'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+                ]);
+                $message = 'User account created.';
+                break;
+            case 'user_update':
+                $userId = (int) ($_POST['user_id'] ?? 0);
+                $username = trim((string) ($_POST['username'] ?? ''));
+                $email = trim((string) ($_POST['email'] ?? ''));
+                if ($userId < 1 || !preg_match('/^[A-Za-z0-9_]{3,20}$/', $username) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    throw new RuntimeException('Use a 3-20 character username and a valid email.');
+                }
+                $statement = $pdo->prepare("UPDATE users SET username = :username, email = :email WHERE userID = :id AND role = 'user'");
+                $statement->execute(['username' => $username, 'email' => $email, 'id' => $userId]);
+                $newPassword = (string) ($_POST['password'] ?? '');
+                if ($newPassword !== '') {
+                    if (strlen($newPassword) < 12) {
+                        throw new RuntimeException('A new password must be at least 12 characters.');
+                    }
+                    $statement = $pdo->prepare("UPDATE users SET password_hash = :password_hash WHERE userID = :id AND role = 'user'");
+                    $statement->execute(['password_hash' => password_hash($newPassword, PASSWORD_DEFAULT), 'id' => $userId]);
+                }
+                $message = 'User account updated.';
+                break;
+            case 'user_delete':
+                $statement = $pdo->prepare("DELETE FROM users WHERE userID = :id AND role = 'user'");
+                $statement->execute(['id' => (int) ($_POST['user_id'] ?? 0)]);
+                $message = 'User account deleted.';
+                break;
             default:
                 throw new RuntimeException('Unknown dashboard action.');
         }
@@ -137,7 +178,21 @@ $bookings = $pdo->query(
      JOIN movies m ON m.movieID = st.movieID ORDER BY b.created_at DESC LIMIT 100'
 )->fetchAll();
 $invoices = $pdo->query('SELECT * FROM invoices ORDER BY issued_at DESC')->fetchAll();
+$users = $pdo->query("SELECT userID, username, email FROM users WHERE role = 'user' ORDER BY username")->fetchAll();
 $csrf = e($_SESSION['csrf_token']);
+$sections = [
+    'company' => 'Company information',
+    'movies' => 'Movies',
+    'showings' => 'Showings',
+    'news' => 'News',
+    'bookings' => 'Bookings',
+    'invoices' => 'Invoices',
+    'users' => 'Users',
+];
+$section = (string) ($_GET['section'] ?? '');
+if ($section !== '' && !array_key_exists($section, $sections)) {
+    $section = '';
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -150,7 +205,7 @@ $csrf = e($_SESSION['csrf_token']);
 <div class="mx-auto flex max-w-7xl items-center justify-between">
 <div>
 <p class="text-xs uppercase tracking-[.3em] text-[#d5a447]">The Marquee</p>
-<h1 class="font-serif text-3xl font-bold">Owner dashboard</h1>
+<h1 class="font-serif text-3xl font-bold"><?= $section === '' ? 'Owner dashboard' : e($sections[$section]) ?></h1>
 </div>
 <a href="logout.php" class="text-xs uppercase tracking-widest hover:text-[#d5a447]">Sign out</a>
 </div>
@@ -161,6 +216,13 @@ $csrf = e($_SESSION['csrf_token']);
 <?= e($message) ?>
 </p>
 <?php endif; ?>
+<nav class="flex flex-wrap gap-2 border-b border-stone-300 pb-5" aria-label="Dashboard sections">
+<a href="index.php" class="<?= $section === '' ? 'bg-[#211b1a] text-[#f8e8bd]' : 'bg-white/60' ?> px-4 py-3 text-xs uppercase tracking-widest">Overview</a>
+<?php foreach ($sections as $key => $label): ?>
+<a href="index.php?section=<?= e($key) ?>" class="<?= $section === $key ? 'bg-[#211b1a] text-[#f8e8bd]' : 'bg-white/60' ?> px-4 py-3 text-xs uppercase tracking-widest"><?= e($label) ?></a>
+<?php endforeach; ?>
+</nav>
+<?php if ($section === '' || $section === 'company'): ?>
 <section>
 <h2 class="mb-4 font-serif text-3xl font-bold">Company information</h2>
 <form method="post" class="grid gap-4 bg-white/60 p-6 md:grid-cols-3">
@@ -172,6 +234,8 @@ $csrf = e($_SESSION['csrf_token']);
 </label>
 </form>
 </section>
+<?php endif; ?>
+<?php if ($section === '' || $section === 'movies'): ?>
 <section>
 <div class="mb-4 flex items-end justify-between">
 <h2 class="font-serif text-3xl font-bold">Movies</h2>
@@ -196,11 +260,13 @@ $csrf = e($_SESSION['csrf_token']);
 <input name="release_date" type="date" value="<?= e($movie['release_date']) ?>" class="border-b border-stone-300 bg-transparent p-2 text-sm">
 <input name="rating" type="number" min="0" max="10" step=".1" value="<?= e($movie['rating']) ?>" class="w-20 border-b border-stone-300 bg-transparent p-2 text-sm">
 <button class="text-xs uppercase tracking-widest text-[#b43a2d]">Update</button>
-<button formaction="index.php" name="action" value="movie_delete" class="text-xs uppercase tracking-widest text-stone-500">Delete</button>
+<button name="action" value="movie_delete" class="text-xs uppercase tracking-widest text-stone-500">Delete</button>
 </form>
 <?php endforeach; ?>
 </div>
 </section>
+<?php endif; ?>
+<?php if ($section === '' || $section === 'showings'): ?>
 <section>
 <h2 class="mb-4 font-serif text-3xl font-bold">Showings & daily premieres</h2>
 <form method="post" class="mb-5 grid gap-3 bg-white/60 p-6 md:grid-cols-5">
@@ -291,6 +357,8 @@ $csrf = e($_SESSION['csrf_token']);
 </table>
 </div>
 </section>
+<?php endif; ?>
+<?php if ($section === '' || $section === 'news'): ?>
 <section>
 <h2 class="mb-4 font-serif text-3xl font-bold">News</h2>
 <form method="post" class="grid gap-3 bg-white/60 p-6 md:grid-cols-3">
@@ -312,12 +380,14 @@ $csrf = e($_SESSION['csrf_token']);
 <input type="checkbox" name="is_published" <?= $item['is_published'] ? 'checked' : '' ?>> Published</label>
 <span>
 <button class="text-xs uppercase tracking-widest text-[#b43a2d]">Update</button>
-<button formaction="index.php" name="action" value="news_delete" class="ml-3 text-xs uppercase tracking-widest text-stone-500">Delete</button>
+<button name="action" value="news_delete" class="ml-3 text-xs uppercase tracking-widest text-stone-500">Delete</button>
 </span>
 </form>
 <?php endforeach; ?>
 </div>
 </section>
+<?php endif; ?>
+<?php if ($section === '' || $section === 'bookings'): ?>
 <section>
 <h2 class="mb-4 font-serif text-3xl font-bold">Booking overview</h2>
 <div class="overflow-x-auto bg-white/60">
@@ -361,6 +431,8 @@ $csrf = e($_SESSION['csrf_token']);
 </table>
 </div>
 </section>
+<?php endif; ?>
+<?php if ($section === '' || $section === 'invoices'): ?>
 <section>
 <h2 class="mb-4 font-serif text-3xl font-bold">Invoice creator</h2>
 <form method="post" class="grid gap-3 bg-white/60 p-6 md:grid-cols-3">
@@ -432,6 +504,37 @@ $csrf = e($_SESSION['csrf_token']);
 </table>
 </div>
 </section>
+<?php endif; ?>
+<?php if ($section === '' || $section === 'users'): ?>
+<section>
+<div class="mb-4 flex items-end justify-between">
+<h2 class="font-serif text-3xl font-bold">User accounts</h2>
+<span class="text-xs uppercase tracking-widest text-stone-500"><?= count($users) ?> users</span>
+</div>
+<form method="post" class="grid gap-3 bg-white/60 p-6 md:grid-cols-4">
+<input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+<input type="hidden" name="action" value="user_create">
+<input name="username" required maxlength="20" pattern="[A-Za-z0-9_]{3,20}" placeholder="Username" class="border border-stone-300 bg-transparent p-3 text-sm">
+<input name="email" required type="email" placeholder="Email" class="border border-stone-300 bg-transparent p-3 text-sm">
+<input name="password" required minlength="12" type="password" placeholder="Password (12+ characters)" class="border border-stone-300 bg-transparent p-3 text-sm">
+<button class="bg-[#b43a2d] px-4 py-3 text-xs uppercase tracking-widest text-white">Create user</button>
+</form>
+<div class="mt-4 space-y-3">
+<?php foreach ($users as $user): ?>
+<form method="post" class="grid gap-3 bg-white/60 p-4 md:grid-cols-[1fr_2fr_1fr_auto_auto]">
+<input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+<input type="hidden" name="action" value="user_update">
+<input type="hidden" name="user_id" value="<?= (int) $user['userID'] ?>">
+<input name="username" required maxlength="20" pattern="[A-Za-z0-9_]{3,20}" value="<?= e($user['username']) ?>" class="border-b border-stone-300 bg-transparent p-2 text-sm">
+<input name="email" required type="email" value="<?= e($user['email']) ?>" class="border-b border-stone-300 bg-transparent p-2 text-sm">
+<input name="password" minlength="12" type="password" placeholder="New password" class="border-b border-stone-300 bg-transparent p-2 text-sm">
+<button class="text-xs uppercase tracking-widest text-[#b43a2d]">Update</button>
+<button name="action" value="user_delete" class="text-xs uppercase tracking-widest text-stone-500">Delete</button>
+</form>
+<?php endforeach; ?>
+</div>
+</section>
+<?php endif; ?>
 </main>
 </body>
 </html>
