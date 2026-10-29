@@ -154,9 +154,20 @@ CREATE TABLE `showtimes` (
    theaterID INT not null,
    starts_at DATETIME not null,
    price INT not null,
+   is_featured TINYINT(1) NOT NULL DEFAULT 0,
    FOREIGN KEY (movieID) REFERENCES `movies`(movieID),
    FOREIGN KEY (theaterID) REFERENCES `theaters`(theaterID)
 );
+
+CREATE TABLE `site_settings` (
+   setting_key VARCHAR(50) NOT NULL PRIMARY KEY,
+   setting_value TEXT NOT NULL
+);
+
+INSERT INTO `site_settings` (setting_key, setting_value) VALUES
+   ('company_description', 'A modern cinema with an old soul.'),
+   ('opening_hours', 'Monday-Sunday, 10:00-23:00'),
+   ('contact_information', 'The Marquee Cinema\nSøløvevej 69\ncinema@lunand.dk\n+45 12 23 34 45');
 
 CREATE TABLE `bookings` (
    bookingID INT not null auto_increment primary key,
@@ -175,6 +186,27 @@ INSERT INTO `theaters` (name, seat_rows, seats_per_row) VALUES
    ('The Grandiose Cinema', 6, 10),
    ('The Medium One', 5, 8),
    ('The Little Fella', 4, 8);
+
+CREATE TABLE `news` (
+   newsID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+   title VARCHAR(255) NOT NULL,
+   body TEXT NOT NULL,
+   published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   is_published TINYINT(1) NOT NULL DEFAULT 1
+);
+
+CREATE TABLE `invoices` (
+   invoiceID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+   invoice_number VARCHAR(40) NOT NULL UNIQUE,
+   bookingID INT NULL,
+   customer_name VARCHAR(255) NOT NULL,
+   customer_email VARCHAR(255) NOT NULL,
+   amount DECIMAL(10,2) NOT NULL,
+   status ENUM('draft', 'sent', 'paid', 'void') NOT NULL DEFAULT 'draft',
+   notes TEXT NOT NULL,
+   issued_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   FOREIGN KEY (bookingID) REFERENCES `bookings`(bookingID) ON DELETE SET NULL
+);
 
 -- Each movie plays in two theaters, 3 days ahead, 2 slots per day
 INSERT INTO `showtimes` (movieID, theaterID, starts_at, price)

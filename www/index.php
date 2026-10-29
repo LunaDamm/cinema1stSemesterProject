@@ -1,64 +1,30 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/lib/HomepageService.php';
 
-$movies = [];
-$showtimes = [];
-$theaters = [];
-$settings = [];
-$news = [];
-$featuredShowtime = null;
+$homepage = [
+    'movies' => [],
+    'showtimes' => [],
+    'theaters' => [],
+    'settings' => [],
+    'news' => [],
+    'featured_showtime' => null,
+];
 $databaseError = null;
 
 try {
     $pdo = require __DIR__ . '/database.php';
-
-    $movies = $pdo->query(
-        "SELECT m.movieID, m.title, YEAR(m.release_date) AS release_year, m.rating,
-                GROUP_CONCAT(DISTINCT g.genreName ORDER BY g.genreName SEPARATOR ', ') AS genres,
-                COUNT(DISTINCT st.showtimeID) AS screenings
-         FROM movies m
-         LEFT JOIN movieGenreRelation mgr ON mgr.movieID = m.movieID
-         LEFT JOIN genre g ON g.genreID = mgr.genreID
-         LEFT JOIN showtimes st ON st.movieID = m.movieID
-         GROUP BY m.movieID, m.title, m.release_date, m.rating
-         ORDER BY m.rating DESC, m.title ASC"
-    )->fetchAll();
-
-    $showtimes = $pdo->query(
-        "SELECT st.showtimeID, st.movieID, st.starts_at, st.price, t.name AS theater
-         FROM showtimes st
-         JOIN theaters t ON t.theaterID = st.theaterID
-         WHERE st.starts_at >= NOW()
-         ORDER BY st.starts_at ASC
-         LIMIT 12"
-    )->fetchAll();
-
-    $theaters = $pdo->query(
-        "SELECT name, seat_rows * seats_per_row AS seats
-         FROM theaters
-         ORDER BY theaterID"
-    )->fetchAll();
-
-    foreach ($pdo->query('SELECT setting_key, setting_value FROM site_settings') as $setting) {
-        $settings[$setting['setting_key']] = $setting['setting_value'];
-    }
-    $news = $pdo->query(
-        'SELECT title, body, published_at FROM news WHERE is_published = 1 ORDER BY published_at DESC LIMIT 3'
-    )->fetchAll();
-    $featuredStatement = $pdo->query(
-        "SELECT st.showtimeID, st.starts_at, m.title, t.name AS theater
-         FROM showtimes st
-         JOIN movies m ON m.movieID = st.movieID
-         JOIN theaters t ON t.theaterID = st.theaterID
-         WHERE st.is_featured = 1 AND st.starts_at >= NOW()
-         ORDER BY st.starts_at ASC
-         LIMIT 1"
-    );
-    $featuredShowtime = $featuredStatement->fetch() ?: null;
+    $homepage = (new HomepageService($pdo))->load();
 } catch (PDOException $exception) {
     $databaseError = 'The projector is warming up. Showing the house programme while we reconnect.';
 }
 
+$movies = $homepage['movies'];
+$showtimes = $homepage['showtimes'];
+$theaters = $homepage['theaters'];
+$settings = $homepage['settings'];
+$news = $homepage['news'];
+$featuredShowtime = $homepage['featured_showtime'];
 $featured = $movies[0] ?? ['title' => 'The Marquee'];
 $movieTitles = [];
 foreach ($movies as $movie) {
@@ -81,23 +47,7 @@ $initials = static function (string $title): string {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root { --ink: #191716; --paper: #f5f0e8; --red: #b43a2d; --gold: #d5a447; }
-        body { background: var(--paper); color: var(--ink); font-family: 'DM Mono', monospace; }
-        .serif { font-family: 'Playfair Display', serif; }
-        .grain { background-image: radial-gradient(rgba(25,23,22,.09) .7px, transparent .7px); background-size: 5px 5px; }
-        .hero-glow { background: radial-gradient(circle at 70% 45%, #d6a749 0, #bd5a35 22%, #721e24 54%, #211719 100%); }
-        .poster { min-height: 280px; position: relative; overflow: hidden; }
-        .poster:after { content: ''; position: absolute; inset: 10px; border: 1px solid rgba(255,244,206,.55); pointer-events: none; }
-        .poster-amber { background: linear-gradient(145deg, #4f2619, #bd7931 54%, #201817); }
-        .poster-red { background: linear-gradient(145deg, #21171a, #9f302d 48%, #e0a54a); }
-        .poster-blue { background: linear-gradient(145deg, #131e2f, #466c76 48%, #c18b4b); }
-        .poster-green { background: linear-gradient(145deg, #192522, #4e6d57 50%, #b67a3e); }
-        .poster-violet { background: linear-gradient(145deg, #211c30, #734c75 50%, #c38b4b); }
-        .filmstrip { background: repeating-linear-gradient(90deg, #1c1917 0, #1c1917 14px, transparent 14px, transparent 31px); }
-        .lift { transition: transform .2s ease, box-shadow .2s ease; }
-        .lift:hover { transform: translateY(-5px); box-shadow: 0 18px 30px rgba(63,34,24,.13); }
-    </style>
+    <link rel="stylesheet" href="assets/css/marquee.css">
 </head>
 <body class="grain">
 <header class="border-b border-stone-900/15 bg-[#f5f0e8]/95">

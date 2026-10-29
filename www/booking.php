@@ -1,16 +1,16 @@
 <?php
 declare(strict_types=1);
 session_start();
+require_once __DIR__ . '/lib/BookingService.php';
 
 $error = null;
-$success = null;
 $showtime = null;
 $occupiedSeats = [];
 $selectedSeats = [];
-$pdo = null;
 
 try {
     $pdo = require __DIR__ . '/database.php';
+    $bookingService = new BookingService($pdo);
 
     $showtimeId = filter_input(INPUT_GET, 'showtime_id', FILTER_VALIDATE_INT);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -21,16 +21,7 @@ try {
         throw new RuntimeException('Choose a showtime before selecting a seat.');
     }
 
-    $showtimeStatement = $pdo->prepare(
-        "SELECT st.showtimeID, st.starts_at, st.price, m.title,
-                t.theaterID, t.name AS theater, t.seat_rows, t.seats_per_row
-         FROM showtimes st
-         JOIN movies m ON m.movieID = st.movieID
-         JOIN theaters t ON t.theaterID = st.theaterID
-         WHERE st.showtimeID = :showtime_id AND st.starts_at >= NOW()"
-    );
-    $showtimeStatement->execute(['showtime_id' => $showtimeId]);
-    $showtime = $showtimeStatement->fetch();
+    $showtime = $bookingService->findShowtime($showtimeId);
 
     if (!$showtime) {
         throw new RuntimeException('That showtime is no longer available.');
@@ -82,72 +73,18 @@ try {
             throw new RuntimeException('Please enter a valid email address.');
         }
 
-        try {
-            $pdo->beginTransaction();
-            $userStatement = $pdo->prepare('SELECT userID FROM users WHERE email = :email LIMIT 1');
-            $userStatement->execute(['email' => $email]);
-            $userId = $userStatement->fetchColumn();
-
-            if (!$userId) {
-                $username = 'guest_' . substr(hash('sha256', strtolower($email)), 0, 14);
-                $createUser = $pdo->prepare(
-                    "INSERT INTO users (username, email, password_hash, role)
-                     VALUES (:username, :email, :password_hash, 'user')"
-                );
-                $createUser->execute([
-                    'username' => $username,
-                    'email' => $email,
-                    'password_hash' => password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT),
-                ]);
-                $userId = (int) $pdo->lastInsertId();
-            }
-
-            $createBooking = $pdo->prepare(
-                "INSERT INTO bookings (userID, showtimeID, seat_row, seat_number, price_paid)
-                 VALUES (:user_id, :showtime_id, :seat_row, :seat_number, :price)"
-            );
-            $bookingId = null;
-            foreach ($selectedSeats as $seat) {
-                $createBooking->execute([
-                    'user_id' => $userId,
-                    'showtime_id' => $showtimeId,
-                    'seat_row' => $seat['row'],
-                    'seat_number' => $seat['number'],
-                    'price' => $showtime['price'],
-                ]);
-                $bookingId ??= (int) $pdo->lastInsertId();
-            }
-            $pdo->commit();
-            $_SESSION['booking_confirmation'] = [
-                'booking_id' => $bookingId,
-                'movie_title' => $showtime['title'],
-                'theater' => $showtime['theater'],
-                'starts_at' => $showtime['starts_at'],
-                'price' => $showtime['price'],
-                'seats' => $selectedSeats,
-                'name' => $name,
-                'email' => $email,
-            ];
-            header('Location: booking_complete.php');
-            exit;
-        } catch (PDOException $exception) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            if (($exception->errorInfo[1] ?? null) === 1062) {
-                throw new RuntimeException('One of those seats was just taken. Please choose another selection.');
-            }
-            throw $exception;
-        }
+        $_SESSION['booking_confirmation'] = $bookingService->createBooking(
+            $showtimeId,
+            $showtime,
+            $selectedSeats,
+            $name,
+            $email
+        );
+        header('Location: booking_complete.php');
+        exit;
     }
 
-    $occupiedStatement = $pdo->prepare(
-        'SELECT seat_row, seat_number FROM bookings WHERE showtimeID = :showtime_id'
-    );
-    $occupiedStatement->execute(['showtime_id' => $showtimeId]);
-    foreach ($occupiedStatement as $seat) {
-        $occupiedSeats[(int) $seat['seat_row'] . '-' . (int) $seat['seat_number']] = true;
-    }
+    $occupiedSeats = $bookingService->occupiedSeats($showtimeId);
 } catch (RuntimeException $exception) {
     $error = $exception->getMessage();
 } catch (PDOException $exception) {
@@ -166,13 +103,7 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body { background: #f5f0e8; color: #191716; font-family: 'DM Mono', monospace; background-image: radial-gradient(rgba(25,23,22,.09) .7px, transparent .7px); background-size: 5px 5px; }
-        .serif { font-family: 'Playfair Display', serif; }
-        .seat { aspect-ratio: 1.2; border: 1px solid #b8a992; background: rgba(255,255,255,.6); transition: .15s ease; box-shadow: 2px 2px 0 rgba(25,23,22,.12); }
-        .seat:hover:not(:disabled), .seat.selected { background: #b43a2d; border-color: #b43a2d; color: #fff8e8; transform: translateY(-2px); }
-        .seat:disabled { background: #c7c0b5; border-color: #c7c0b5; color: #756e65; cursor: not-allowed; }
-    </style>
+    <link rel="stylesheet" href="assets/css/marquee.css">
 </head>
 <body>
 <header class="border-b border-stone-900/15 bg-[#f5f0e8]/95">
@@ -189,7 +120,6 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
     <h1 class="serif text-5xl font-bold">Choose your seats.</h1>
 
     <?php if ($error): ?><div class="mt-7 border-l-2 border-[#b43a2d] bg-[#eadfcb] px-5 py-4 text-sm"><?= $e($error) ?></div><?php endif; ?>
-    <?php if ($success): ?><div class="mt-7 border-l-2 border-green-700 bg-green-50 px-5 py-4 text-sm"><?= $e($success) ?></div><?php endif; ?>
 
     <?php if ($showtime): ?>
         <div class="mt-10 grid gap-10 lg:grid-cols-[1fr_340px]">
