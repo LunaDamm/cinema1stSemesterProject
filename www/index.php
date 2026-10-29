@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+session_start();
 require_once __DIR__ . '/lib/HomepageService.php';
 
 $homepage = [
@@ -60,6 +61,7 @@ $initials = static function (string $title): string {
             <a href="#programme" class="hover:text-[#b43a2d]">Programme</a>
             <a href="#showtimes" class="hover:text-[#b43a2d]">Coming up</a>
             <a href="#visit" class="hover:text-[#b43a2d]">Visit us</a>
+            <a href="<?= !empty($_SESSION['user_id']) ? 'bookings.php' : 'login.php' ?>" class="hover:text-[#b43a2d]"><?= !empty($_SESSION['user_id']) ? 'My bookings' : 'Customer login' ?></a>
         </nav>
     </div>
 </header>

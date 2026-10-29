@@ -43,16 +43,19 @@ final class BookingService
         array $showtime,
         array $seats,
         string $name,
-        string $email
+        string $email,
+        ?int $userId = null
     ): array {
         try {
             $this->pdo->beginTransaction();
 
-            $userStatement = $this->pdo->prepare(
-                'SELECT userID FROM users WHERE email = :email LIMIT 1'
-            );
-            $userStatement->execute(['email' => $email]);
-            $userId = $userStatement->fetchColumn();
+            if ($userId === null) {
+                $userStatement = $this->pdo->prepare(
+                    'SELECT userID FROM users WHERE email = :email LIMIT 1'
+                );
+                $userStatement->execute(['email' => $email]);
+                $userId = (int) $userStatement->fetchColumn();
+            }
 
             if (!$userId) {
                 $createUser = $this->pdo->prepare(

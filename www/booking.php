@@ -2,89 +2,25 @@
 declare(strict_types=1);
 session_start();
 require_once __DIR__ . '/lib/BookingService.php';
+require_once __DIR__ . '/lib/customer_auth.php';
+require_once __DIR__ . '/lib/BookingPageController.php';
 
 $error = null;
 $showtime = null;
 $occupiedSeats = [];
-$selectedSeats = [];
-
 try {
     $pdo = require __DIR__ . '/database.php';
-    $bookingService = new BookingService($pdo);
-
-    $showtimeId = filter_input(INPUT_GET, 'showtime_id', FILTER_VALIDATE_INT);
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $showtimeId = filter_input(INPUT_POST, 'showtime_id', FILTER_VALIDATE_INT);
-    }
-
-    if (!$showtimeId) {
-        throw new RuntimeException('Choose a showtime before selecting a seat.');
-    }
-
-    $showtime = $bookingService->findShowtime($showtimeId);
-
-    if (!$showtime) {
-        throw new RuntimeException('That showtime is no longer available.');
-    }
-
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $postedSeats = $_POST['seats'] ?? [];
-        $name = trim((string) ($_POST['name'] ?? ''));
-        $email = trim((string) ($_POST['email'] ?? ''));
-
-        if (!is_array($postedSeats) || count($postedSeats) < 1) {
-            throw new RuntimeException('Please choose at least one seat from the seating plan.');
-        }
-
-        foreach ($postedSeats as $postedSeat) {
-            if (
-                !is_array($postedSeat) ||
-                !isset($postedSeat['row'], $postedSeat['number']) ||
-                filter_var($postedSeat['row'], FILTER_VALIDATE_INT) === false ||
-                filter_var($postedSeat['number'], FILTER_VALIDATE_INT) === false
-            ) {
-                throw new RuntimeException('Please choose valid seats from the seating plan.');
-            }
-
-            $seatRow = (int) $postedSeat['row'];
-            $seatNumber = (int) $postedSeat['number'];
-            if (
-                $seatRow < 1 || $seatRow > (int) $showtime['seat_rows'] ||
-                $seatNumber < 1 || $seatNumber > (int) $showtime['seats_per_row']
-            ) {
-                throw new RuntimeException('Please choose valid seats from the seating plan.');
-            }
-
-            $seatKey = "{$seatRow}-{$seatNumber}";
-            if (isset($selectedSeats[$seatKey])) {
-                throw new RuntimeException('A seat cannot be selected more than once.');
-            }
-            $selectedSeats[$seatKey] = ['row' => $seatRow, 'number' => $seatNumber];
-        }
-        $selectedSeats = array_values($selectedSeats);
-
-        if (count($selectedSeats) > 10) {
-            throw new RuntimeException('You can book a maximum of 10 seats at a time.');
-        }
-        if ($name === '' || mb_strlen($name) > 100) {
-            throw new RuntimeException('Please enter your name.');
-        }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new RuntimeException('Please enter a valid email address.');
-        }
-
-        $_SESSION['booking_confirmation'] = $bookingService->createBooking(
-            $showtimeId,
-            $showtime,
-            $selectedSeats,
-            $name,
-            $email
-        );
-        header('Location: booking_complete.php');
-        exit;
-    }
-
-    $occupiedSeats = $bookingService->occupiedSeats($showtimeId);
+    $page = (new BookingPageController($pdo, new BookingService($pdo)))->show([
+        'method' => $_SERVER['REQUEST_METHOD'],
+        'showtime_id' => $_SERVER['REQUEST_METHOD'] === 'POST'
+            ? ($_POST['showtime_id'] ?? null)
+            : ($_GET['showtime_id'] ?? null),
+        'seats' => $_POST['seats'] ?? null,
+        'name' => $_POST['name'] ?? null,
+        'email' => $_POST['email'] ?? null,
+    ]);
+    $showtime = $page['showtime'];
+    $occupiedSeats = $page['occupiedSeats'];
 } catch (RuntimeException $exception) {
     $error = $exception->getMessage();
 } catch (PDOException $exception) {
@@ -112,7 +48,10 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
             <span class="flex h-11 w-11 items-center justify-center rounded-full bg-[#b43a2d] text-xl text-[#f8e8bd]">✦</span>
             <span><strong class="serif block text-xl tracking-tight">The Marquee</strong><small class="text-[10px] uppercase tracking-[.3em] text-stone-500">Est. 1927 · Moving pictures</small></span>
         </a>
-        <a href="/" class="rounded-full border border-stone-900 px-4 py-2 text-xs uppercase tracking-widest hover:bg-stone-900 hover:text-[#f5f0e8]">← Programme</a>
+        <div class="flex items-center gap-3">
+            <?php if (customer_user_id() !== null): ?><a href="bookings.php" class="text-xs uppercase tracking-widest hover:text-[#b43a2d]">My bookings</a><?php endif; ?>
+            <a href="/" class="rounded-full border border-stone-900 px-4 py-2 text-xs uppercase tracking-widest hover:bg-stone-900 hover:text-[#f5f0e8]">← Programme</a>
+        </div>
     </div>
 </header>
 <main class="mx-auto max-w-7xl px-6 py-20">
@@ -152,8 +91,8 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
                 <p class="text-xs uppercase tracking-[.25em] text-[#d5a447]">Your details</p>
                 <p id="selection" class="mt-4 border-b border-[#f8e8bd]/20 pb-5 text-sm text-[#f8e8bd]/70">Select one or more seats to continue.</p>
                 <div class="mt-6 space-y-4">
-                    <label class="block text-xs uppercase tracking-widest">Name<input required name="name" form="booking-form" maxlength="100" class="mt-2 w-full border-b border-[#f8e8bd]/30 bg-transparent py-2 text-sm outline-none focus:border-[#d5a447]" autocomplete="name"></label>
-                    <label class="block text-xs uppercase tracking-widest">Email<input required type="email" name="email" form="booking-form" class="mt-2 w-full border-b border-[#f8e8bd]/30 bg-transparent py-2 text-sm outline-none focus:border-[#d5a447]" autocomplete="email"></label>
+                    <label class="block text-xs uppercase tracking-widest">Name<input required name="name" form="booking-form" maxlength="100" value="<?= $e($_SESSION['user_username'] ?? '') ?>" <?= customer_user_id() !== null ? 'readonly' : '' ?> class="mt-2 w-full border-b border-[#f8e8bd]/30 bg-transparent py-2 text-sm outline-none focus:border-[#d5a447]" autocomplete="name"></label>
+                    <label class="block text-xs uppercase tracking-widest">Email<input required type="email" name="email" form="booking-form" value="<?= $e($_SESSION['user_email'] ?? '') ?>" <?= customer_user_id() !== null ? 'readonly' : '' ?> class="mt-2 w-full border-b border-[#f8e8bd]/30 bg-transparent py-2 text-sm outline-none focus:border-[#d5a447]" autocomplete="email"></label>
                 </div>
                 <button id="submit-booking" form="booking-form" disabled class="mt-8 w-full bg-[#d5a447] px-5 py-3 text-xs font-bold uppercase tracking-widest text-[#211b1a] disabled:cursor-not-allowed disabled:opacity-40">Reserve selected seats</button>
                 <p class="mt-5 text-[10px] leading-5 text-[#f8e8bd]/50">Your reservation is written directly to the cinema booking system.</p>

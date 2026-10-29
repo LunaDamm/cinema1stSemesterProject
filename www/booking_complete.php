@@ -40,7 +40,10 @@ $total = (float) ($confirmation['price'] ?? 0) * $seatCount;
             <span class="flex h-11 w-11 items-center justify-center rounded-full bg-[#b43a2d] text-xl text-[#f8e8bd]">✦</span>
             <span><strong class="serif block text-xl tracking-tight">The Marquee</strong><small class="text-[10px] uppercase tracking-[.3em] text-stone-500">Est. 1927 · Moving pictures</small></span>
         </a>
-        <a href="/" class="rounded-full border border-stone-900 px-4 py-2 text-xs uppercase tracking-widest hover:bg-stone-900 hover:text-[#f5f0e8]">← Programme</a>
+        <div class="flex items-center gap-3">
+            <?php if (!empty($_SESSION['user_id'])): ?><a href="bookings.php" class="text-xs uppercase tracking-widest hover:text-[#b43a2d]">My bookings</a><?php endif; ?>
+            <a href="/" class="rounded-full border border-stone-900 px-4 py-2 text-xs uppercase tracking-widest hover:bg-stone-900 hover:text-[#f5f0e8]">← Programme</a>
+        </div>
     </div>
 </header>
 <main class="mx-auto max-w-3xl px-6 py-16 md:py-24">
