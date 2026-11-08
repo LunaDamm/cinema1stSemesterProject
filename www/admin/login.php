@@ -10,7 +10,6 @@ if (!empty($_SESSION['owner_id'])) {
 }
 
 $error = null;
-$adminExists = (bool) $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim((string) ($_POST['username'] ?? ''));
     $password = (string) ($_POST['password'] ?? '');
@@ -42,7 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <label class="mt-6 block text-xs uppercase tracking-widest">Username<input required name="username" class="mt-2 w-full border-b border-stone-400 bg-transparent p-2 outline-none"></label>
         <label class="mt-5 block text-xs uppercase tracking-widest">Password<input required type="password" name="password" class="mt-2 w-full border-b border-stone-400 bg-transparent p-2 outline-none"></label>
         <button class="mt-8 w-full bg-[#211b1a] px-5 py-3 text-xs uppercase tracking-widest text-[#f8e8bd]">Sign in</button>
-        <?php if (!$adminExists): ?><a href="setup.php" class="mt-5 block text-center text-xs uppercase tracking-widest text-[#b43a2d]">Create the first owner account</a><?php endif; ?>
     </form>
 </main>
 </body>

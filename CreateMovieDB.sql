@@ -141,6 +141,9 @@ CREATE TABLE `users` (
    role ENUM('user','admin') not null default 'user'
 );
 
+INSERT INTO `users` (username, email, password_hash, role) VALUES
+   ('admin', 'admin@cinema.local', '$2y$10$Yslmz0qpjkvUpzjwYxPkl.yXw8igvkvXh3AWL9j5fssR1b5z4oqB2', 'admin');
+
 CREATE TABLE `theaters` (
    theaterID INT not null auto_increment primary key,
    name VARCHAR(100) not null,
