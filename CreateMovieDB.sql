@@ -195,7 +195,8 @@ CREATE TABLE `news` (
    title VARCHAR(255) NOT NULL,
    body TEXT NOT NULL,
    published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-   is_published TINYINT(1) NOT NULL DEFAULT 1
+   is_published TINYINT(1) NOT NULL DEFAULT 1,
+   image_path VARCHAR(255) NULL
 );
 
 CREATE TABLE `invoices` (

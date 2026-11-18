@@ -42,7 +42,7 @@ final class HomepageService
         }
 
         $news = $this->pdo->query(
-            'SELECT title, body, published_at FROM news WHERE is_published = 1 ORDER BY published_at DESC LIMIT 3'
+            'SELECT title, body, published_at, image_path FROM news WHERE is_published = 1 ORDER BY published_at DESC LIMIT 3'
         )->fetchAll();
 
         $featuredStatement = $this->pdo->query(

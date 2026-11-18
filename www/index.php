@@ -139,7 +139,16 @@ $initials = static function (string $title): string {
         <h2 class="serif mb-8 text-5xl font-bold">Latest news</h2>
         <div class="grid gap-6 md:grid-cols-3">
             <?php foreach ($news as $item): ?>
-                <article class="bg-white/60 p-6"><p class="text-[10px] uppercase tracking-widest text-stone-500"><?= e(date('M j, Y', strtotime($item['published_at']))) ?></p><h3 class="serif mt-3 text-2xl font-bold"><?= e($item['title']) ?></h3><p class="mt-3 whitespace-pre-line text-sm leading-6 text-stone-600"><?= e($item['body']) ?></p></article>
+                <article class="overflow-hidden bg-white/60">
+                    <?php if (!empty($item['image_path'])): ?>
+                    <img src="/<?= $e($item['image_path']) ?>" alt="" class="h-[225px] w-full object-cover">
+                    <?php endif; ?>
+                    <div class="p-6">
+                        <p class="text-[10px] uppercase tracking-widest text-stone-500"><?= $e(date('M j, Y', strtotime($item['published_at']))) ?></p>
+                        <h3 class="serif mt-3 text-2xl font-bold"><?= $e($item['title']) ?></h3>
+                        <p class="mt-3 whitespace-pre-line text-sm leading-6 text-stone-600"><?= $e($item['body']) ?></p>
+                    </div>
+                </article>
             <?php endforeach; ?>
         </div>
     </section>
