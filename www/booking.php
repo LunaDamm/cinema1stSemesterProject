@@ -77,9 +77,10 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
                             <?php for ($row = 1; $row <= (int) $showtime['seat_rows']; $row++): ?>
                                 <?php for ($number = 1; $number <= (int) $showtime['seats_per_row']; $number++):
                                     $key = "{$row}-{$number}";
+                                    $label = "{$row}" . chr(64 + $number);
                                     $taken = isset($occupiedSeats[$key]);
                                 ?>
-                                    <button type="button" class="seat rounded-sm text-xs" data-row="<?= $row ?>" data-number="<?= $number ?>" <?= $taken ? 'disabled aria-label="Seat taken"' : '' ?>><?= $row ?><?= chr(64 + $number) ?></button>
+                                    <button type="button" class="seat rounded-sm text-xs" data-row="<?= $row ?>" data-number="<?= $number ?>" <?= $taken ? 'disabled aria-label="Seat taken"' : '' ?>><?= $e($label) ?></button>
                                 <?php endfor; ?>
                             <?php endfor; ?>
                         </div>
@@ -117,7 +118,7 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
                 selectedSeats.appendChild(input);
             });
         });
-        const labels = [...chosen.values()].map((seat) => `${seat.row}-${seat.number}`);
+        const labels = [...chosen.values()].map((seat) => `${seat.row}-${String.fromCharCode(64 + Number(seat.number))}`);
         selection.textContent = labels.length ? `${labels.length} seat${labels.length === 1 ? '' : 's'} selected: ${labels.join(', ')}` : 'Select one or more seats to continue.';
         submit.disabled = labels.length === 0 || labels.length > 10;
     };
